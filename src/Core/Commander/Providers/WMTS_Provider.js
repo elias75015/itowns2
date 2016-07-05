@@ -12,7 +12,6 @@ define('Core/Commander/Providers/WMTS_Provider', [
         'Core/Commander/Providers/IoDriver_XBIL',
         'Core/Commander/Providers/IoDriver_Image',
         'Core/Commander/Providers/IoDriverXML',
-        'when',
         'THREE',
         'Core/Commander/Providers/CacheRessource'
     ],
@@ -23,7 +22,6 @@ define('Core/Commander/Providers/WMTS_Provider', [
         IoDriver_XBIL,
         IoDriver_Image,
         IoDriverXML,
-        when,
         THREE,
         CacheRessource) {
 /*
@@ -216,17 +214,18 @@ define('Core/Commander/Providers/WMTS_Provider', [
 
             // TEMP
             if (tile.currentElevation === -1 && tile.level  > layer.zoom.min )
-                return when(-2);
+                return Promise.resolve(-2);
 
             var coWMTS = tile.tileCoord;
 
 
             var url = this.url(coWMTS,layerId);
 
+            // TODO: this is not optimal: if called again before the IoDriver resolves, it'll load the XBIL again
             var textureCache = this.cache.getRessource(url);
 
             if (textureCache !== undefined)
-                return when(textureCache);
+                return Promise.resolve(textureCache);
 
 
             // bug #74
@@ -234,7 +233,7 @@ define('Core/Commander/Providers/WMTS_Provider', [
             // if (!limits || !coWMTS.isInside(limits)) {
             //     var texture = -1;
             //     this.cache.addRessource(url, texture);
-            //     return when(texture);
+            //     return Promise.resolve(texture);
             // }
             // -> bug #74
 
@@ -279,10 +278,11 @@ define('Core/Commander/Providers/WMTS_Provider', [
             var result = {pitch:pitch};
             var url = this.url(coWMTS,layerId);
 
+            // TODO: this is not optimal: if called again before ioDriverImage resolves, it'll load the image again
             result.texture = this.cache.getRessource(url);
 
             if (result.texture !== undefined) {
-                return when(result);
+                return Promise.resolve(result);
             }
             return this.ioDriverImage.read(url).then(function(image) {
 
@@ -376,7 +376,7 @@ define('Core/Commander/Providers/WMTS_Provider', [
             var promises = [];
             var paramMaterial = [];
             if (tile.material === null) {
-                return when();
+                return Promise.resolve();
             }
             // Request parent's texture if no texture at all
             var lookAtAncestor = tile.material.getLevelLayerColor(1) === -1;
@@ -411,9 +411,9 @@ define('Core/Commander/Providers/WMTS_Provider', [
                 tile.setParamsColor(promises.length,paramMaterial);
 
             if (promises.length)
-                return when.all(promises);
+                return Promise.all(promises);
             else
-                return when();
+                return Promise.resolve();
 
        };
 
